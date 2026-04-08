@@ -27,7 +27,8 @@ Maven
 ## ⚙️ Setup Instructions
 
 1️⃣ Clone the Project
-git clone [https://github.com/your-username/finance-tracker](https://github.com/mallikshreya509/finance_tracker).git
+git clone [https://github.com/mallikshreya509finance-tracker](https://github.com/mallikshreya509/finance_tracker).git
+
 cd finance-tracker
 
 2️⃣ Setup MySQL
