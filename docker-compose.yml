@@ -1,0 +1,75 @@
+version: '3.9'
+
+services:
+
+  # ── MySQL Database ───────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: finance_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: finance_tracker
+      MYSQL_USER: ${DB_USERNAME:-finance_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-root}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Spring Boot App ──────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finance_app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      # Database - points to MySQL container
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/finance_tracker?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+      DB_USERNAME: ${DB_USERNAME:-finance_user}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      # JWT — CHANGE THIS IN PRODUCTION
+      JWT_SECRET: ${JWT_SECRET:-ChangeThisToAVeryLongSecretKeyInProductionAtLeast256Bits!}
+      # Gemini API — set your key in .env
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-your-gemini-api-key-here}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 90s
+      retries: 3
+
+  # ── phpMyAdmin (optional DB GUI) ─────────────────────────────
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: finance_phpmyadmin
+    restart: unless-stopped
+    profiles: ["tools"]   # only starts with: docker compose --profile tools up
+    depends_on:
+      - mysql
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+
+volumes:
+  mysql_data:
