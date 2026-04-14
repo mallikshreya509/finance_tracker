@@ -23,6 +23,8 @@ MySQL
 
 Maven
 
+MongoDb
+
 
 ## ⚙️ Setup Instructions
 
